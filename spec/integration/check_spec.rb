@@ -1,6 +1,5 @@
 require 'spec_helper'
 require 'json'
-require 'billy'
 
 describe 'check' do
   let(:proxy) { Billy::Proxy.new }
@@ -8,9 +7,8 @@ describe 'check' do
   before { proxy.start }
   after  { proxy.reset }
 
-  def check(payload = {})
+  def check(payload)
     path = ['./assets/check', '/opt/resource/check'].find { |p| File.exist? p }
-    payload[:source] = { repo: 'jtarchie/test' }
 
     output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path}`
     JSON.parse(output)
@@ -23,12 +21,12 @@ describe 'check' do
     end
 
     it 'returns no versions' do
-      expect(check).to eq []
+      expect(check(source: { repo: 'jtarchie/test'})).to eq []
     end
 
     context 'when there is a last known version' do
       it 'returns no versions' do
-        payload = { version: { ref: '1' } }
+        payload = { version: { ref: '1' }, source: { repo: 'jtarchie/test' } }
 
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/pulls/1')
           .and_return(json: {})
@@ -51,12 +49,12 @@ describe 'check' do
       end
 
       it 'returns SHA of the pull request' do
-        expect(check).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
+        expect(check(source: { repo: 'jtarchie/test' })).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
       end
 
       context 'and the version is the same as the pull request' do
         it 'returns nothing' do
-          payload = { version: { ref: 'abcdef', pr: '1' } }
+          payload = { version: { ref: 'abcdef', pr: '1' }, source: { repo: 'jtarchie/test' } }
 
           expect(check(payload)).to eq []
         end
@@ -70,12 +68,12 @@ describe 'check' do
       end
 
       it 'returns SHA of the pull request' do
-        expect(check).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
+        expect(check(source: { repo: 'jtarchie/test' })).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
       end
 
       context 'and the version is the same as the pull request' do
         it 'returns nothing' do
-          payload = { version: { ref: 'abcdef', pr: '1' } }
+          payload = { version: { ref: 'abcdef', pr: '1' }, source: { repo: 'jtarchie/test' } }
 
           expect(check(payload)).to eq []
         end
@@ -85,9 +83,12 @@ describe 'check' do
     context 'that has another status' do
       it 'does not return it' do
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
-          .and_return(json: [{ state: 'success', context: 'concourseci' }])
+          .and_return(json: [
+            { state: 'pending', context: 'concourseci' },
+            { state: 'success', context: 'concourseci' }
+          ])
 
-        expect(check).to eq []
+        expect(check(source: { repo: 'jtarchie/test' })).to eq []
       end
     end
   end
@@ -103,7 +104,7 @@ describe 'check' do
 
     context 'and the version is the same as the older pull request' do
       it 'returns nothing when its still pending' do
-        payload = { version: { ref: 'abcdef', pr: '1' } }
+        payload = { version: { ref: 'abcdef', pr: '1' }, source: { repo: 'jtarchie/test' } }
 
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
           .and_return(json: [{ state: 'pending', context: 'concourseci' }])
@@ -112,7 +113,7 @@ describe 'check' do
       end
 
       it 'returns the latest pull request when the current version is not pending' do
-        payload = { version: { ref: 'abcdef', pr: '1' } }
+        payload = { version: { ref: 'abcdef', pr: '1' }, source: { repo: 'jtarchie/test' } }
 
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
           .and_return(json: [{ state: 'success', context: 'concourseci' }])

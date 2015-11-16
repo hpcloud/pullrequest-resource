@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+require 'octokit'
+
+destination = ARGV.shift
+
+def input
+  @input ||= JSON.parse(ARGF.read).tap do |input|
+    input['params'] ||= {}
+  end
+end
+
+Octokit.connection_options[:ssl] = { verify: false } if ENV['http_proxy']
+pr = Octokit.pull_request(input['source']['repo'], input['version']['pr'])
+
+puts JSON.generate(version:  { ref: ref, pr: input['version']['pr'] },
+                   metadata: { url: pr['url'] })

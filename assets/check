@@ -3,6 +3,58 @@
 require 'json'
 require 'octokit'
 
+class PullRequest
+  def initialize(repo:, pr:)
+    @repo = repo
+    @pr = pr
+  end
+
+  def pending?
+    statuses.all? do |status|
+      status['state'] == 'pending'
+    end
+  end
+
+  def equals?(id:, ref:)
+    [pr['head']['sha'], pr['id']] == [ref, id]
+  end
+
+  def to_json
+    { ref: pr['head']['sha'], pr: pr['id'] }
+  end
+
+  private
+
+  def statuses
+    @statuses ||= Octokit.statuses(repo.name, sha).select do |status|
+      status['context'] == 'concourseci'
+    end
+  end
+
+  def sha
+    pr['head']['sha']
+  end
+end
+
+class Repository
+  attr_reader :name
+
+  def initialize(name:)
+    @repo = repo
+  end
+
+  def pull_requests
+    @pull_requests ||= Octokit.pulls(name, state: 'open', sort: 'updated', direction: 'desc').map do |pr|
+      PullRequest.new(repo: self, pr: pr)
+    end
+  end
+
+  def next_pull_request
+    return if pull_requests.empty?
+
+  end
+end
+
 def input
   @input ||= JSON.parse(ARGF.read).tap do |input|
     input['version'] ||= {}
@@ -14,31 +66,17 @@ def json!(payload)
   exit
 end
 
-def status(pr)
-  statuses = Octokit.statuses(input['source']['repo'], pr['head']['sha'])
-  statuses.find { |status| status['context'] == 'concourseci' } || { 'state' => 'pending' }
-end
-
-def same_version?(pr)
-  [pr['head']['sha'], pr['id']] == [input['version']['ref'], input['version']['pr']]
-end
-
-def pending?(pr)
-  status(pr)['state'] == 'pending'
-end
-
 Octokit.connection_options[:ssl] = { verify: false } if ENV['http_proxy']
 Octokit.auto_paginate = true
 
-prs = Octokit.pulls(input['source']['repo'], state: 'open', sort: 'updated', direction: 'desc')
-json!([]) if prs.empty?
+repo = Repository.new(name: input['source']['repo'])
 
-current_pr = prs.find { |pr| same_version?(pr) }
-json!([]) if current_pr && pending?(current_pr)
+current_pr = repo.pull_requests.find { |pr| pr.equals?(id: input['version']['pr'], sha: input['version']['ref']) }
+json!([]) if current_pr && current_pr.pending?
 
-most_recent = prs.first
-if pending?(most_recent)
-  json!([{ ref: most_recent['head']['sha'], pr: most_recent['id'] }])
+most_recent = repo.pull_requests.first
+if most_recent.pending?
+  json!([most_recent.to_json])
 else
   json!([])
 end
