@@ -39,7 +39,7 @@ describe 'get' do
   end
 
   it 'checks out the pull request to dest_dir' do
-    get(version: { ref: @ref, pr: '1' }, source: { uri: git_uri, repo: 'jtarchie/test' })
+    get(version: { ref: @ref, pr: '1' }, source: { access_token: 'abc', uri: git_uri, repo: 'jtarchie/test' })
     expect(@ref).to eq git('log --format=format:%H HEAD', dest_dir)
   end
 

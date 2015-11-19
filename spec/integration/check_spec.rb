@@ -49,7 +49,7 @@ describe 'check' do
       end
 
       it 'returns SHA of the pull request' do
-        expect(check(source: { repo: 'jtarchie/test' })).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
+        expect(check(source: { repo: 'jtarchie/test' }, version: {})).to eq [{ 'ref' => 'abcdef', 'pr' => '1' }]
       end
 
       context 'and the version is the same as the pull request' do
@@ -68,7 +68,7 @@ describe 'check' do
       end
 
       it 'returns SHA of the pull request' do
-        expect(check(source: { repo: 'jtarchie/test' })).to eq []
+        expect(check(source: { repo: 'jtarchie/test' }, version: {})).to eq []
       end
 
       context 'and the version is the same as the pull request' do
@@ -88,7 +88,7 @@ describe 'check' do
             { state: 'success', context: 'concourseci' }
           ])
 
-        expect(check(source: { repo: 'jtarchie/test' })).to eq []
+        expect(check(source: { repo: 'jtarchie/test' }, version: {})).to eq []
       end
     end
   end

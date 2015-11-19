@@ -7,6 +7,15 @@ describe 'out' do
   before { proxy.start }
   after  { proxy.reset }
 
+  def git(cmd, dir = dest_dir)
+    Dir.chdir(dir) { `git #{cmd}`.chomp }
+  end
+
+  def commit(msg)
+    git("-c user.name='test' -c user.email='test@example.com' commit -q --allow-empty -m '#{msg}'")
+    git('log --format=format:%H HEAD')
+  end
+
   def out(payload = {})
     path = ['./assets/out', '/opt/resource/out'].find { |p| File.exist? p }
     payload[:source] = { repo: 'jtarchie/test' }
@@ -16,14 +25,17 @@ describe 'out' do
   end
 
   before do
-    proxy.stub('https://api.github.com:443/repos/jtarchie/test/pulls')
-      .and_return(json: [{
+    proxy.stub('https://api.github.com:443/repos/jtarchie/test/pulls/1')
+      .and_return(json: {
       url: 'http://example.com',
       number: 1,
       head: { sha: 'abcdef' }
-    }])
+    })
     proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
       .and_return(json: [])
+
+    git('init -q')
+    git('config --add pullrequest.id 1')
   end
 
   context 'when acquiring a pull request' do
@@ -32,7 +44,10 @@ describe 'out' do
 
       output = out(params: { status: 'pending' }, source: { repo: 'jtarchie/test' })
       expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
-                           'metadata' => { 'url' => 'http://example.com', 'status' => 'pending' })
+                           'metadata' => [
+                             { 'name' => 'url', 'value' => 'http://example.com'},
+                             { 'name' => 'status', 'value' => 'pending' }
+      ])
     end
   end
 
@@ -43,7 +58,10 @@ describe 'out' do
 
         output = out(params: { status: 'success' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
-                             'metadata' => { 'url' => 'http://example.com', 'status' => 'success' })
+                             'metadata' => [
+                               { 'name' => 'url', 'value' => 'http://example.com'},
+                               { 'name' => 'status', 'value' => 'success' }
+        ])
       end
     end
 
@@ -53,7 +71,10 @@ describe 'out' do
 
         output = out(params: { status: 'failure' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
-                             'metadata' => { 'url' => 'http://example.com', 'status' => 'failure' })
+                             'metadata' => [
+                               { 'name' => 'url', 'value' => 'http://example.com'},
+                               { 'name' => 'status', 'value' => 'failure' }
+        ])
       end
     end
   end
