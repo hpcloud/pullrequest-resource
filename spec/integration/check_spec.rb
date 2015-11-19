@@ -7,13 +7,6 @@ describe 'check' do
   before { proxy.start }
   after  { proxy.reset }
 
-  def check(payload)
-    path = ['./assets/check', '/opt/resource/check'].find { |p| File.exist? p }
-
-    output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path}`
-    JSON.parse(output)
-  end
-
   context 'when there are no pull requests' do
     before do
       proxy.stub('https://api.github.com:443/repos/jtarchie/test/pulls')

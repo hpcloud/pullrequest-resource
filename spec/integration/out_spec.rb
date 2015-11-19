@@ -16,14 +16,6 @@ describe 'out' do
     git('log --format=format:%H HEAD')
   end
 
-  def out(payload = {})
-    path = ['./assets/out', '/opt/resource/out'].find { |p| File.exist? p }
-    payload[:source] = { repo: 'jtarchie/test' }
-
-    output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}`
-    JSON.parse(output)
-  end
-
   before do
     proxy.stub('https://api.github.com:443/repos/jtarchie/test/pulls/1')
       .and_return(json: {
@@ -42,7 +34,7 @@ describe 'out' do
     it 'sets into pending mode' do
       proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-      output = out(params: { status: 'pending' }, source: { repo: 'jtarchie/test' })
+      output = put(params: { status: 'pending' }, source: { repo: 'jtarchie/test' })
       expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                            'metadata' => [
                              { 'name' => 'url', 'value' => 'http://example.com'},
@@ -56,7 +48,7 @@ describe 'out' do
       it 'sets into success mode' do
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-        output = out(params: { status: 'success' }, source: { repo: 'jtarchie/test' })
+        output = put(params: { status: 'success' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                              'metadata' => [
                                { 'name' => 'url', 'value' => 'http://example.com'},
@@ -69,7 +61,7 @@ describe 'out' do
       it 'sets into failure mode' do
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-        output = out(params: { status: 'failure' }, source: { repo: 'jtarchie/test' })
+        output = put(params: { status: 'failure' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                              'metadata' => [
                                { 'name' => 'url', 'value' => 'http://example.com'},

@@ -14,3 +14,27 @@ RSpec.configure do |config|
     mocks.verify_partial_doubles = true
   end
 end
+
+def check(payload)
+  path = ['./assets/check', '/opt/resource/check'].find { |p| File.exist? p }
+
+  output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path}`
+  JSON.parse(output)
+end
+
+def get(payload = {})
+  path = ['./assets/in', '/opt/resource/in'].find { |p| File.exist? p }
+
+  output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}`
+  JSON.parse(output)
+end
+
+def put(payload = {})
+  path = ['./assets/out', '/opt/resource/out'].find { |p| File.exist? p }
+  payload[:source] = { repo: 'jtarchie/test' }
+
+  output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}`
+  JSON.parse(output)
+end
+
+

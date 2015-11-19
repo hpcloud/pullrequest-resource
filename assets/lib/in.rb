@@ -2,7 +2,6 @@
 
 destination = ARGV.shift
 
-
 require 'rubygems'
 require 'json'
 require 'octokit'

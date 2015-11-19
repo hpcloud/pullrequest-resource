@@ -10,6 +10,8 @@ require_relative 'common'
 id = nil
 Dir.chdir(destination) do
   id = `git config --get pullrequest.id`.chomp
+  warn "id: #{id}"
+  warn "destination: #{destination}"
 end
 
 repo = Repository.new(name: input['source']['repo'])

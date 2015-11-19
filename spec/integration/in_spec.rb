@@ -11,13 +11,6 @@ describe 'get' do
   before { proxy.start }
   after  { proxy.reset }
 
-  def get(payload = {})
-    path = ['./assets/in', '/opt/resource/in'].find { |p| File.exist? p }
-
-    output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}`
-    JSON.parse(output)
-  end
-
   def git(cmd, dir = git_dir)
     Dir.chdir(dir) { `git #{cmd}`.chomp }
   end
