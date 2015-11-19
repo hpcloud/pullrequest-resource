@@ -7,11 +7,13 @@ require 'json'
 require 'octokit'
 require_relative 'common'
 
-id = nil
-Dir.chdir(destination) do
-  id = `git config --get pullrequest.id`.chomp
-  warn "id: #{id}"
-  warn "destination: #{destination}"
+raise '`path` required in `params`' unless input['params'].has_key?('path')
+
+path = File.join(destination, input['params']['path'])
+raise %Q{`path` "#{input['params']['path']}" does not exist} unless File.exist?(path)
+
+id = Dir.chdir(path) do
+  `git config --get pullrequest.id`.chomp
 end
 
 repo = Repository.new(name: input['source']['repo'])

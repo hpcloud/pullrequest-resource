@@ -1,13 +1,15 @@
 require 'spec_helper'
+require 'fileutils'
 
 describe 'out' do
   let(:proxy) { Billy::Proxy.new }
   let(:dest_dir) { Dir.mktmpdir }
+  let(:git_dir) { File.join(dest_dir, 'resource') }
 
   before { proxy.start }
   after  { proxy.reset }
 
-  def git(cmd, dir = dest_dir)
+  def git(cmd, dir = git_dir)
     Dir.chdir(dir) { `git #{cmd}`.chomp }
   end
 
@@ -26,6 +28,7 @@ describe 'out' do
     proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
       .and_return(json: [])
 
+    FileUtils.mkdir_p(git_dir)
     git('init -q')
     git('config --add pullrequest.id 1')
   end
@@ -34,12 +37,24 @@ describe 'out' do
     it 'sets into pending mode' do
       proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-      output = put(params: { status: 'pending' }, source: { repo: 'jtarchie/test' })
+      output, _ = put(params: { status: 'pending', path: 'resource' }, source: { repo: 'jtarchie/test' })
       expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                            'metadata' => [
                              { 'name' => 'url', 'value' => 'http://example.com'},
                              { 'name' => 'status', 'value' => 'pending' }
       ])
+    end
+
+    context 'with bad params' do
+      it 'raises an error when path is missing' do
+        _, error = put(params: { status: 'pending'}, source: { repo: 'jtarchie/test' })
+        expect(error).to include '`path` required in `params`'
+      end
+
+      it 'raises an error when the path does not exist' do
+        _, error = put(params: { status: 'pending', path: 'do not care'}, source: { repo: 'jtarchie/test' })
+        expect(error).to include '`path` "do not care" does not exist'
+      end
     end
   end
 
@@ -48,7 +63,7 @@ describe 'out' do
       it 'sets into success mode' do
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-        output = put(params: { status: 'success' }, source: { repo: 'jtarchie/test' })
+        output, _ = put(params: { status: 'success', path: 'resource' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                              'metadata' => [
                                { 'name' => 'url', 'value' => 'http://example.com'},
@@ -61,7 +76,7 @@ describe 'out' do
       it 'sets into failure mode' do
         proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef', method: :post)
 
-        output = put(params: { status: 'failure' }, source: { repo: 'jtarchie/test' })
+        output, _ = put(params: { status: 'failure', path: 'resource' }, source: { repo: 'jtarchie/test' })
         expect(output).to eq('version'  => { 'ref' => 'abcdef', 'pr' => '1' },
                              'metadata' => [
                                { 'name' => 'url', 'value' => 'http://example.com'},

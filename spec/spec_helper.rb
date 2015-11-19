@@ -1,4 +1,5 @@
 require 'billy'
+require 'open3'
 
 Billy.configure do |c|
   c.non_successful_error_level = :error
@@ -33,8 +34,9 @@ def put(payload = {})
   path = ['./assets/out', '/opt/resource/out'].find { |p| File.exist? p }
   payload[:source] = { repo: 'jtarchie/test' }
 
-  output = `echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}`
-  JSON.parse(output)
+  output, error, _ = Open3.capture3("echo '#{JSON.generate(payload)}' | env http_proxy=#{proxy.url} #{path} #{dest_dir}")
+
+  return (JSON.parse(output) rescue nil), error
 end
 
 

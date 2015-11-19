@@ -47,7 +47,8 @@ describe 'full concourse emulation' do
     proxy
       .stub('https://api.github.com:443/repos/jtarchie/test/pulls/1')
       .and_return(json: {url:'http://example.com', number: 1, head: {sha: @ref}})
-    get(version: versions.first, source: source)
+    output = get(version: versions.first, source: source)
+    expect(output).to_not be_nil
     proxy.reset
 
     proxy
@@ -55,7 +56,9 @@ describe 'full concourse emulation' do
       .and_return(json: {url:'http://example.com', number: 1, head: {sha: @ref}})
     proxy
       .stub("https://api.github.com:443/repos/jtarchie/test/statuses/#{@ref}", method: :post)
-    put(params: { status: 'pending' }, source: source)
+    output, error = put(params: { status: 'pending', path: 'resource' }, source: source)
+    expect(error).to eq ''
+    expect(output).to_not be_nil
     proxy.reset
 
     expect(task('cd repo && git show')).to include 'init'
@@ -65,6 +68,8 @@ describe 'full concourse emulation' do
       .and_return(json: {url:'http://example.com', number: 1, head: {sha: @ref}})
     proxy
       .stub("https://api.github.com:443/repos/jtarchie/test/statuses/#{@ref}", method: :post)
-    put(params: { status: 'success' }, source: source)
+    output, error = put(params: { status: 'success' }, source: source)
+    expect(error).to eq ''
+    expect(output).to_not be_nil
   end
 end
