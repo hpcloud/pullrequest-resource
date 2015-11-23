@@ -4,12 +4,11 @@ require 'fileutils'
 describe 'out' do
   let(:proxy) { Billy::Proxy.new }
   let(:dest_dir) { Dir.mktmpdir }
-  let(:git_dir) { File.join(dest_dir, 'resource') }
 
   before { proxy.start }
   after  { proxy.reset }
 
-  def git(cmd, dir = git_dir)
+  def git(cmd, dir = dest_dir)
     Dir.chdir(dir) { `git #{cmd}`.chomp }
   end
 
@@ -28,7 +27,6 @@ describe 'out' do
     proxy.stub('https://api.github.com:443/repos/jtarchie/test/statuses/abcdef')
       .and_return(json: [])
 
-    FileUtils.mkdir_p(git_dir)
     git('init -q')
     git('config --add pullrequest.id 1')
   end
